@@ -13,7 +13,11 @@ int compare (const void * a, const void * b) {
 int check_group(int **elements, int n) {
     // TODO: replace this return statement with a real function body
     if(n == 1){
-        return **elements == 1;
+        if(**elements == 1){
+            return 0;
+        }else{
+            return 1;
+        }
     }
     int list[n * n];
     for(int i = 0; i < n; i++){
