@@ -26,13 +26,13 @@ int main(int argc, char **argv) {
         return 1;
     }else{
         char s[1024];
-        char names0[31] = {'\0'}, names1[31] = {'\0'};
+        char names0[32] = {'\0'}, names1[32] = {'\0'};
         int processes[2] = {0, 0};
        
         // if no argument
         if(argc == 1){
              while((fgets(s,1024,stdin))!=NULL){
-                char name[31]; 
+                char name[32]; 
                 sscanf(s, "%[^ ]", name);
                 count_name(name, names0, names1, processes);
             }  
@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
         }else{
             int ppid = strtol(argv[1], NULL, 10);
             while((fgets(s,1024,stdin))!=NULL){
-                char name[31]; 
+                char name[32]; 
                 int cur_ppid;
                 sscanf(s, "%s %*d %d", name, &cur_ppid);
                 if(cur_ppid == ppid){
