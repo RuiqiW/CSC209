@@ -15,6 +15,20 @@
  */
 
 /* Write your solution here */
+void fib(int **fib_pt, int count){
+    *fib_pt = malloc(sizeof(int) * count);
+    if(count == 1){
+        (*fib_pt)[0] = 0;
+    }else{
+        (*fib_pt)[0] = 0;
+        (*fib_pt)[1] = 1;
+        if(count > 2){
+            for(int i = 2; i < count; i++){
+                (*fib_pt)[i] = (*fib_pt)[i-1] + (*fib_pt)[i-2];
+            }
+        }
+    }
+}
 
 
 int main(int argc, char **argv) {
