@@ -500,6 +500,14 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
             exit(1);
         }
         strncpy((*courselist_ptr)[i].description, str + 7, INPUT_BUFFER_SIZE);
+
+        //other info
+        (*courselist_ptr)[i].head = NULL;
+        (*courselist_ptr)[i].tail = NULL;
+        (*courselist_ptr)[i].helped = 0;
+        (*courselist_ptr)[i].bailed = 0;
+        (*courselist_ptr)[i].wait_time = 0;
+        (*courselist_ptr)[i].help_time = 0;
     }
     return course_num;
 }
