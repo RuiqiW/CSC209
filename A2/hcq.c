@@ -10,6 +10,13 @@
  * or NULL if no student with this name exists in the stu_list
  */
 Student *find_student(Student *stu_list, char *student_name) {
+    Student *head = stu_list;
+    while(head != NULL){
+        if( ! strcmp(head -> name, student_name)){
+            return head;
+        }
+        head = head -> next_overall;
+    }
     return NULL;
 }
 
@@ -19,6 +26,13 @@ Student *find_student(Student *stu_list, char *student_name) {
  *   if no such TA exists in ta_list. 
  */
 Ta *find_ta(Ta *ta_list, char *ta_name) {
+    Ta *head = ta_list;
+    while(head != NULL){
+        if( ! strcmp(head -> name, ta_name)){
+            return head;
+        }
+        head = head -> next;
+    }
     return NULL;
 }
 
@@ -27,6 +41,11 @@ Ta *find_ta(Ta *ta_list, char *ta_name) {
  *  or NULL if there is no course in the list with this code.
  */
 Course *find_course(Course *courses, int num_courses, char *course_code) {
+    for(int i = 0; i < num_courses; i++){
+        if(! strcmp(courses[i].code, course_code)){
+            return (courses + i);
+        }
+    }
     return NULL;
 }
     
@@ -42,6 +61,59 @@ Course *find_course(Course *courses, int num_courses, char *course_code) {
 int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
     Course *course_array, int num_courses) {
 
+    if( find_student(*stu_list_ptr, student_name) != NULL){
+        return 1;
+    }
+    Course *course;
+    if( (course = find_course(course_array, num_courses, course_code)) == NULL){
+        return 2;
+    }
+
+    Student *new_stu = malloc(sizeof(Student));
+    if(new_stu == NULL){
+        perror("malloc for Student");
+        exit(1);
+    }
+
+    //name
+    new_stu -> name = malloc(sizeof(char) * (strlen(student_name) + 1));
+    if(new_stu -> name == NULL){
+        perror("malloc for Student name");
+        exit(1);
+    }
+    strcpy(new_stu -> name, student_name);
+
+    //arrival_time
+    new_stu -> arrival_time = malloc(sizeof(time_t));
+    if(new_stu -> arrival_time == NULL){
+        perror("malloc for Student arrival_time");
+        exit(1);
+    }
+    *(new_stu -> arrival_time) = time(NULL);
+
+    new_stu -> course = course;
+    new_stu -> next_overall = NULL;
+    new_stu -> next_course = NULL;
+
+    //insert at the end of list
+    if(*stu_list_ptr == NULL){
+        *stu_list_ptr = new_stu;
+    }else{
+        Student *stu_head = *stu_list_ptr;
+        while(stu_head->next_overall != NULL){
+            stu_head = stu_head->next_overall;
+        }
+        stu_head -> next_overall = new_stu;
+    }
+
+    //update course info
+    if(course -> head == NULL){
+        course -> head = new_stu;
+        course -> tail = new_stu;
+    }else{
+        (course -> tail) -> next_course = new_stu;
+        course -> tail = new_stu;
+    }
     return 0;
 }
 
@@ -53,6 +125,51 @@ int add_student(Student **stu_list_ptr, char *student_name, char *course_code,
  * If there is no student by this name in the stu_list, return 1.
  */
 int give_up_waiting(Student **stu_list_ptr, char *student_name) {
+    Student *stu;
+    if( (stu = find_student(*stu_list_ptr, student_name)) == NULL){
+        return 1;
+    }
+
+    //update course info
+    Course *course = stu -> course;
+    course -> bailed ++;
+    course -> wait_time += time(NULL) - *(stu -> arrival_time);
+
+    //update course head
+    if(stu == course -> head){
+        if(stu -> next_course != NULL){
+            course -> head = stu -> next_course;
+        }else{
+            course -> head = NULL;
+            course -> tail = NULL;
+        }
+    //update next_course of previous student & course tail
+    }else{
+        Student *head = course -> head;
+        while(head -> next_course != stu){
+            head = head -> next_course;
+        }
+        head -> next_course = stu -> next_course;
+        if(stu == course -> tail){
+            course -> tail = head;
+        }
+    }
+
+    //update stu_list
+    if(stu == *stu_list_ptr){
+        *stu_list_ptr = stu -> next_overall;
+    }else{
+        Student *head = *stu_list_ptr;
+        while(head -> next_overall != stu){
+            head = head -> next_overall;
+        }
+        head -> next_overall = stu -> next_overall;
+    }
+
+    free(stu -> name);
+    free(stu -> arrival_time);
+    free(stu);
+
     return 0;
 }
 
@@ -86,7 +203,15 @@ void add_ta(Ta **ta_list_ptr, char *ta_name) {
  * If the TA has no current student, do nothing.
  */
 void release_current_student(Ta *ta) {
-
+    Student *stu;
+    if( (stu = ta -> current_student) != NULL){
+        Course *course = stu -> course;
+        course -> help_time += time(NULL) - *(stu -> arrival_time);
+        course -> helped += 1;
+        free(stu -> name);
+        free(stu -> arrival_time);
+        free(stu);
+    }
 }
 
 /* Remove this Ta from the ta_list and free the associated memory with
@@ -139,7 +264,33 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
  * If ta_name is not in ta_list, return 1 and do nothing.
  */
 int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
+    Ta *ta;
+    if( (ta = find_ta(ta_list, ta_name)) == NULL){
+        return 1;
+    }
+    release_current_student(ta);
+    if(*stu_list_ptr == NULL){
+        ta -> current_student = NULL;
+    }else{
+        Student *stu = *stu_list_ptr;
+        ta -> current_student = stu;
 
+        //update course info
+        Course *course = stu -> course;
+        course -> wait_time += time(NULL) - *(stu -> arrival_time);
+        course -> head = stu -> next_course;
+        if(course -> head == NULL){
+            course -> tail = NULL;
+        }
+
+        //update general list
+        *stu_list_ptr = stu -> next_overall;
+
+        //update student info
+        *(stu -> arrival_time) = time(NULL);
+        stu -> next_overall = NULL;
+        stu -> next_course = NULL;
+    }
     return 0;
 }
 
@@ -154,10 +305,61 @@ int take_next_overall(char *ta_name, Ta *ta_list, Student **stu_list_ptr) {
  * If course is invalid return 2, but finish with any current student. 
  */
 int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *course_code, Course *courses, int num_courses) {
+    Ta *ta;
+    if( (ta = find_ta(ta_list, ta_name)) == NULL){
+        return 1;
+    }
+    release_current_student(ta);
     
+    Course *course = find_course(courses, num_courses, course_code);
+    if(course == NULL){
+        ta -> current_student = NULL;
+        return 2;
+    }
+    
+    if(course -> head == NULL){
+        ta -> current_student = NULL;
+    }else{
+        Student *stu = course -> head;
+        ta -> current_student = stu;
+
+        //update course info
+        course -> wait_time += time(NULL) - *(stu -> arrival_time);
+        course -> head = stu -> next_course;
+        if(course -> head == NULL){
+            course -> tail = NULL;
+        }
+
+        //update general list
+        if(stu == *stu_list_ptr){
+            *stu_list_ptr = stu -> next_overall;
+        }else{
+            Student *stu_head = *stu_list_ptr;
+            while(stu_head -> next_overall != stu){
+                stu_head = stu_head -> next_overall;
+            }
+            stu_head -> next_overall = stu -> next_overall;
+        }
+
+        //update student info
+        *(stu -> arrival_time) = time(NULL);
+        stu -> next_overall = NULL;
+        stu -> next_course = NULL;
+    }
     return 0;
 }
 
+/* Return the number of students waiting in queue for a certain course.
+*/
+int student_waiting(Course *course){
+    int total = 0;
+    Student *head = course -> head;
+    while(head != NULL){
+        total += 1;
+        head = head -> next_course;
+    }
+    return total;
+}
 
 /* For each course (in the same order as in the config file), print
  * the <course code>: <number of students waiting> "in queue\n" followed by
@@ -166,8 +368,14 @@ int take_next_course(char *ta_name, Ta *ta_list, Student **stu_list_ptr, char *c
  * names.
  */
 void print_all_queues(Student *stu_list, Course *courses, int num_courses) {
-         //printf("%s: %d in queue\n", var1, var2);
-             //printf("\t%s\n",var3); 
+    for(int i = 0; i< num_courses; i++){
+        printf("%s: %d in queue\n", courses[i].code, student_waiting(courses + i) );
+        Student *head = courses[i].head;
+        while(head != NULL){
+            printf("\t%s\n", head -> name);
+            head = head -> next_course;
+        }
+    } 
 }
 
 
@@ -176,9 +384,19 @@ void print_all_queues(Student *stu_list, Course *courses, int num_courses) {
  * Uncomment and use the printf statements 
  */
 void print_currently_serving(Ta *ta_list) {
-    //printf("No TAs are in the help centre.\n");
-    //printf("TA: %s is serving %s from %s\n",i var1, var2);
-    //printf("TA: %s has no student\n", var3);
+    if(ta_list == NULL){
+        printf("No TAs are in the help centre.\n");
+    }else{
+        Ta *head = ta_list;
+        while(head != NULL){
+            if(head -> current_student != NULL){
+                printf("TA: %s is serving %s from %s\n", head->name, head -> current_student -> name, head -> current_student -> course -> code);
+            }else{
+                printf("TA: %s has no student\n", head -> name);
+            }
+            head = head -> next;
+        }
+    }
 }
 
 
@@ -186,7 +404,33 @@ void print_currently_serving(Ta *ta_list) {
  *   maybe suggest it is useful for debugging but not included in marking? 
  */ 
 void print_full_queue(Student *stu_list) {
+    Student *stu = stu_list;
+    while(stu != NULL){
+        printf("%s %s\n", stu -> name, stu -> course -> code);
+        if(stu -> next_overall != NULL){
+            printf("Next overall: %s \n", stu -> next_overall -> name);
+        }
+        if(stu -> next_course != NULL){
+            printf("Next course: %s \n", stu -> next_course -> name);
+        }
+        stu = stu -> next_overall;
+    }
+}
 
+/* Return the number of students who is being helped with a certain course.
+*/
+int count_being_helped(Ta *ta_list, Course *course){
+    int result = 0;
+    Ta *head = ta_list;
+    while(head != NULL){
+        if(head -> current_student != NULL){
+            if(head -> current_student -> course == course){
+                result += 1;
+            }
+        }
+        head = head -> next;
+    }
+    return result;
 }
 
 /* Prints statistics to stdout for course with this course_code
@@ -197,12 +441,15 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
 
     // TODO: students will complete these next pieces but not all of this 
     //       function since we want to provide the formatting
-       
-
-    
+    Course *found;
+    if ( (found = find_course(courses, num_courses, course_code)) == NULL){
+        return 1;
+    }  
     // You MUST not change the following statements or your code 
     //  will fail the testing. 
-/*
+
+    int students_waiting = student_waiting(found);
+    int students_being_helped = count_being_helped(ta_list, found);
     printf("%s:%s \n", found->code, found->description);
     printf("\t%d: waiting\n", students_waiting);
     printf("\t%d: being helped currently\n", students_being_helped);
@@ -210,7 +457,7 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
     printf("\t%d: gave_up\n", found->bailed);
     printf("\t%f: total time waiting\n", found->wait_time);
     printf("\t%f: total time helping\n", found->help_time);
-*/
+    
     return 0;
 }
 
@@ -221,6 +468,38 @@ int stats_by_course(Student *stu_list, char *course_code, Course *courses, int n
  * If the configuration file can not be opened, call perror() and exit.
  */
 int config_course_list(Course **courselist_ptr, char *config_filename) {
+    FILE *fp;
     
-    return 0;
+    if( (fp = fopen(config_filename, "r")) == NULL){
+        perror("Error opening config file");
+        exit(1);
+    }
+
+    // number of courses
+    int course_num;
+    char str[INPUT_BUFFER_SIZE];
+    fgets(str, INPUT_BUFFER_SIZE, fp);
+    course_num = strtol(str, NULL, 10);
+
+    *courselist_ptr = malloc(sizeof(Course) * course_num);
+    if(*courselist_ptr == NULL){
+        perror("malloc for courselist");
+        exit(1);
+    }
+    for(int i = 0; i < course_num; i++){
+        fgets(str, INPUT_BUFFER_SIZE, fp);
+
+        //course code
+        strncpy((*courselist_ptr)[i].code, str, 7);
+        (*courselist_ptr)[i].code[6] = '\0';
+        
+        //course description
+        (*courselist_ptr)[i].description = malloc(sizeof(char) * INPUT_BUFFER_SIZE);
+        if ( (*courselist_ptr)[i].description == NULL){
+            perror("malloc for course description");
+            exit(1);
+        }
+        strncpy((*courselist_ptr)[i].description, str + 7, INPUT_BUFFER_SIZE);
+    }
+    return course_num;
 }
