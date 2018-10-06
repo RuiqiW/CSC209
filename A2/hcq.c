@@ -509,5 +509,9 @@ int config_course_list(Course **courselist_ptr, char *config_filename) {
         (*courselist_ptr)[i].wait_time = 0;
         (*courselist_ptr)[i].help_time = 0;
     }
+    if(fclose(fp) != 0){
+        perror("Error closing config file");
+        exit(1);
+    }
     return course_num;
 }
