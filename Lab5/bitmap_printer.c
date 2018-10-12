@@ -39,5 +39,15 @@ int main(int argc, char **argv) {
 
     // Clean up: you need to do this!
 
+    for(int i = 0; i < height; i++){
+        free(pixels[i]);
+    }
+    free(pixels);
+
+    if(fclose(image) != 0){
+        perror("Fail closing file");
+        exit(1);
+    }
+
     return 0;
 }
