@@ -84,7 +84,8 @@ int main(void) {
                 printf(NO_USER);
             }else{
                 printf(SUCCESS);
-        }
+            }
+        }   
     }
 
   return 0;
