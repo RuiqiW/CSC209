@@ -82,9 +82,8 @@ int main(void) {
                 printf(INVALID);
             }else if(WEXITSTATUS(status) == 3){
                 printf(NO_USER);
-            }
-        }else{
-            printf(SUCCESS);
+            }else{
+                printf(SUCCESS);
         }
     }
 
