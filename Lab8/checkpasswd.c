@@ -52,11 +52,11 @@ int main(void) {
       
       close(fd[0]);
 
-      if(write(fd[1], user_id, MAXLINE) == -1){
+      if(write(fd[1], user_id, MAX_PASSWORD) == -1){
           perror("write to pipe");
           exit(1);
       }
-      if(write(fd[1], password, MAXLINE) == -1){
+      if(write(fd[1], password, MAX_PASSWORD) == -1){
           perror("write to pipe");
           exit(1);
       }
