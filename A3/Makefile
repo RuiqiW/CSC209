@@ -7,6 +7,9 @@ OBJ = freq_list.o punc.o
 
 all : indexer queryone printindex
 
+test :  test.o worker.o ${OBJ}
+	gcc ${FLAGS} -o $@ test.o worker.o ${OBJ}
+
 indexer : indexer.o ${OBJ}
 	gcc ${FLAGS} -o $@ indexer.o ${OBJ}
 
