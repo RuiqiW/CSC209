@@ -33,8 +33,7 @@ int main(int argc, char **argv) {
     read_list(listfile, namefile, &head, filenames);
     display_list(head, filenames);
 
-    /* Read words from stdin and print their freqrecords if such word exists 
-     * in some file in the directory. 
+    /* Read words from stdin and print their freqrecords if such word exists in the index file. 
     */
     char word[MAXWORD];
      while((fgets(word, MAXWORD, stdin))!=NULL){
