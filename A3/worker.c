@@ -71,7 +71,63 @@ void print_freq_records(FreqRecord *frp) {
 }
 
 /* Complete this function for Task 2 including writing a better comment.
+ * First load the index from the directory specified by dirname. Then read from 
+ * the file descriptor in one word at a time and write to the file descriptor out 
+ * one FreqRecord for each file in which the word has a non-zero frequency. 
+ * Finally, write one FreqRecord with a frequency of zero and an empty string for the filename.  
 */
 void run_worker(char *dirname, int in, int out) {
-    return;
+    Node *head = NULL;
+    char **filenames = init_filenames();
+    printf("%s\n", dirname);
+
+    // get the path of index and filenames
+    char listfile[PATHLENGTH];
+    listfile[0] = '\0';
+    strncpy(listfile, dirname, PATHLENGTH);
+    strncat(listfile, "/", PATHLENGTH-strlen(listfile));
+    strncat(listfile, "index", PATHLENGTH-strlen(listfile));
+    listfile[PATHLENGTH - 1] = '\0';
+    printf("%s\n", listfile);
+    
+    char namefile[PATHLENGTH];
+    namefile[0] = '\0';
+    strncpy(namefile, dirname, PATHLENGTH);
+    strncat(namefile, "/", PATHLENGTH-strlen(namefile));
+    strncat(namefile, "filenames", PATHLENGTH-strlen(namefile));
+    namefile[PATHLENGTH - 1] = '\0';
+    printf("%s\n", namefile);
+
+    read_list(listfile, namefile, &head, filenames);
+
+    char word[MAXWORD];
+    int temp;
+    while((temp = read(in, word, MAXWORD)) != 0){
+        if(temp == -1){
+            perror("read");
+            exit(1);
+        }
+        // Remove '\n' if it exists
+        char *newline;
+        if((newline=strchr(word, '\n')) != NULL) {
+            *newline = '\0';
+        }
+
+        FreqRecord *record = get_word(word, head, filenames);
+
+        // write to file descriptor out
+        int i = 0;
+        while (record != NULL && record[i].freq != 0) {
+            if(write(out, &(record[i]), sizeof(FreqRecord)) == -1){
+                perror("write");
+                exit(1);
+            }
+            i++;
+        }
+        //write the last FreqRecord
+        if(write(out, &(record[i]), sizeof(FreqRecord))  == -1){
+            perror("write");
+            exit(1);
+        }
+    }
 }
