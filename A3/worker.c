@@ -8,6 +8,8 @@
 #include "worker.h"
 
 /* Complete this function for Task 1. Including fixing this comment.
+*  Look up a word in a given index and return an array of FreqRecord for the word.
+*  The last record has a freq value of 0 and the filename set to an empty string.
 */
 FreqRecord *get_word(char *word, Node *head, char **file_names) {
     Node *cur = head;
