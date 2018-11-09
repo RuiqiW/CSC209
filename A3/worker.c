@@ -127,8 +127,8 @@ void run_worker(char *dirname, int in, int out) {
             exit(1);
         }
         free(record);
-        freespace(head, filenames);
     }
+    freespace(head, filenames);
 }
 
 /* A helper function for sorting FreqRecord.
