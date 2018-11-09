@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
             namefile = optarg;
             break;
         default:
-            fprintf(stderr, "Usage: printindex [-i FILE] [-n FILE]\n");
+            fprintf(stderr, "Usage: test [-i FILE] [-n FILE]\n");
             exit(1);
         }
     }
@@ -44,6 +44,7 @@ int main(int argc, char **argv) {
         }
         FreqRecord *record = get_word(word, head, filenames);
         print_freq_records(record);
+        free(record);
     }
 
     return 0;

@@ -79,7 +79,6 @@ void print_freq_records(FreqRecord *frp) {
 void run_worker(char *dirname, int in, int out) {
     Node *head = NULL;
     char **filenames = init_filenames();
-    printf("%s\n", dirname);
 
     // get the path of index and filenames
     char listfile[PATHLENGTH];
@@ -88,7 +87,6 @@ void run_worker(char *dirname, int in, int out) {
     strncat(listfile, "/", PATHLENGTH-strlen(listfile));
     strncat(listfile, "index", PATHLENGTH-strlen(listfile));
     listfile[PATHLENGTH - 1] = '\0';
-    printf("%s\n", listfile);
     
     char namefile[PATHLENGTH];
     namefile[0] = '\0';
@@ -96,7 +94,6 @@ void run_worker(char *dirname, int in, int out) {
     strncat(namefile, "/", PATHLENGTH-strlen(namefile));
     strncat(namefile, "filenames", PATHLENGTH-strlen(namefile));
     namefile[PATHLENGTH - 1] = '\0';
-    printf("%s\n", namefile);
 
     read_list(listfile, namefile, &head, filenames);
 
@@ -129,5 +126,28 @@ void run_worker(char *dirname, int in, int out) {
             perror("write");
             exit(1);
         }
+        free(record);
+        freespace(head, filenames);
     }
+}
+
+/* A helper function for sorting FreqRecord.
+*/
+int cmpfunc (const void * a, const void * b) {
+   return ( (*(FreqRecord*)b).freq - (*(FreqRecord*)a).freq);
+}
+
+/* A helper function to free head and filenames.
+*/
+void freespace(Node *head, char **filenames){
+    Node *cur;
+    while(head != NULL){
+        cur = head -> next;
+        free(head);
+        head = cur;
+    }
+    for(int i = 0; i < MAXFILES; i++){
+        free(filenames[i]);
+    }
+    free(filenames);
 }

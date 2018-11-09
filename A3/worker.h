@@ -17,5 +17,7 @@ typedef struct {
 FreqRecord *get_word(char *word, Node *head, char **file_names);
 void print_freq_records(FreqRecord *frp);
 void run_worker(char *dirname, int in, int out);
+int cmpfunc(const void * a, const void * b);
+void freespace(Node *head, char **filenames);
 
 #endif /* WORKER_H */
