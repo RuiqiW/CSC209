@@ -10,7 +10,11 @@
 #include "freq_list.h"
 #include "worker.h"
 
-/* 
+/* A query engine that uses the indexes produced by indexer
+ * and searches for words under a given directory.
+ * Take the directory for search from an optional argument. 
+ * Then read one word a time from stdin and print to stdout
+ * the frequency array of the word in order from highest to lowest.
  */
 int main(int argc, char **argv) {
     char ch;
