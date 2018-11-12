@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
             }
         }
 
-        FreqRecord maxrecord[MAXRECORDS];
+        FreqRecord maxrecord[MAXRECORDS + 1];
         int recordcount = 0;
 
         // read freqrecords
@@ -152,25 +152,25 @@ int main(int argc, char **argv) {
                 if(record.freq == 0){
                     break;
                 }else{
-                    if(recordcount < MAXRECORDS){
+                    if(recordcount < MAXRECORDS + 1){
                         maxrecord[recordcount] = record;
                         recordcount++;
                         qsort(maxrecord, recordcount, sizeof(FreqRecord), cmpfunc);
                     }else{
-                        if(record.freq > maxrecord[MAXRECORDS - 1].freq){
-                            maxrecord[MAXRECORDS - 1] = record;
-                            qsort(maxrecord, MAXRECORDS - 1, sizeof(FreqRecord), cmpfunc);
+                        if(record.freq > maxrecord[MAXRECORDS].freq){
+                            maxrecord[MAXRECORDS] = record;
+                            qsort(maxrecord, MAXRECORDS, sizeof(FreqRecord), cmpfunc);
                         }
                     }
                 }
             }
         }
-        if(maxrecord[recordcount-1].freq != 0){
+        if(maxrecord[recordcount].freq != 0){
             FreqRecord lastrecord;
             lastrecord.freq = 0;
             lastrecord.filename[0] = '\0';
-            if(recordcount == MAXRECORDS){
-                maxrecord[MAXRECORDS-1] = lastrecord;
+            if(recordcount == MAXRECORDS + 1){
+                maxrecord[MAXRECORDS] = lastrecord;
             }else{
                 maxrecord[recordcount] = lastrecord;
                 recordcount++;
