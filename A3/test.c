@@ -46,6 +46,7 @@ int main(int argc, char **argv) {
         print_freq_records(record);
         free(record);
     }
+    freespace(head, filenames);
 
     return 0;
 }

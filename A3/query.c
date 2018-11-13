@@ -73,9 +73,10 @@ int main(int argc, char **argv) {
         // Only create worker process if it is a directory
         // Otherwise ignore it.
         if (S_ISDIR(sbuf.st_mode)) {
-
+            
+            // exit if there are more than MAXWORKERS subdirectories
             if(workerCount >= MAXWORKERS){
-                fprintf(stderr, "too many subdirectories");
+                fprintf(stderr, "too many subdirectories\n");
                 exit(1);
             }
 
@@ -118,15 +119,15 @@ int main(int argc, char **argv) {
             }
         }
     }
+    
+    // exit if there is no subdirectories
+    if(workerCount == 0){
+        fprintf(stderr, "No subdirectories\n");
+        exit(1);
+    }
 
     char word[MAXWORD];
-    int temp;
-
-    while((temp = read(STDIN_FILENO, word, MAXWORD)) != 0){
-        if(temp == -1){
-            perror("read");
-            exit(1);
-        }
+    while((fgets(word, MAXWORD, stdin))!=NULL){
 
         // write the word read from stdin to pipes
         for(int i = 0; i < workerCount; i++){
@@ -165,16 +166,15 @@ int main(int argc, char **argv) {
                 }
             }
         }
-        if(maxrecord[recordcount].freq != 0){
-            FreqRecord lastrecord;
-            lastrecord.freq = 0;
-            lastrecord.filename[0] = '\0';
-            if(recordcount == MAXRECORDS + 1){
-                maxrecord[MAXRECORDS] = lastrecord;
-            }else{
-                maxrecord[recordcount] = lastrecord;
-                recordcount++;
-            }
+        // append the sentinel
+        FreqRecord lastrecord;
+        lastrecord.freq = 0;
+        lastrecord.filename[0] = '\0';
+        if(recordcount == MAXRECORDS + 1){
+            maxrecord[MAXRECORDS] = lastrecord;
+        }else{
+            maxrecord[recordcount] = lastrecord;
+            recordcount++;
         }
         print_freq_records(maxrecord);
     }
@@ -183,6 +183,7 @@ int main(int argc, char **argv) {
     for(int i = 0; i < workerCount; i++){
        if(close(fpw[i][1]) < 0){
            perror("close writing end of pipe in parent");
+           exit(1);
        }
     }
 
@@ -196,6 +197,7 @@ int main(int argc, char **argv) {
         }else{
             if(WIFEXITED(status)){
                 if(WEXITSTATUS(status) == 1){
+                    fprintf(stderr, "child process exits abnormally\n");
                     exit(1);
                 }
             }
