@@ -54,7 +54,11 @@ int main(int argc, char **argv) {
     newtimer.it_interval.tv_usec = 0;
     newtimer.it_value.tv_sec = seconds;
     newtimer.it_value.tv_usec = 0;
-    setitimer(ITIMER_PROF, &newtimer, NULL);
+    if ( setitimer(ITIMER_PROF, &newtimer, NULL) != 0){
+      perror("setitimer");
+      exit(1);
+    }
+    
 
     /* In an infinite loop, read an int from a random location in the file,
      * and print it to stderr.
