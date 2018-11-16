@@ -19,10 +19,10 @@ int main(int argc, char **argv) {
     }
 
     // TODO: complete this program according its description above.
-
-
-
-
+    for(int i = 0; i < 100; i++){
+        int r = random() % 100;
+        fwrite(&r, sizeof(int), 1, fp);
+    }
 
     fclose(fp);
     return 0;
