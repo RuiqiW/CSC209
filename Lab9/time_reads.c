@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
       int num;
       fseek(fp, r * sizeof(int), SEEK_SET);
       fread(&num, sizeof(int), 1, fp);
-      fprintf(stderr, "%d ", num);
+      fprintf(stderr, "%d\n", num);
       num_reads ++;
     }
     return 1; // something is wrong if we ever get here!
