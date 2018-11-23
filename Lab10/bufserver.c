@@ -38,7 +38,7 @@ int main() {
         int nbytes;
         while ((nbytes = read(fd, after, room)) > 0) {
             // Step 1: update inbuf (how many bytes were just added?)
-
+            inbuf += nbytes;
 
             int where;
 
@@ -56,7 +56,8 @@ int main() {
                 // Be sure to put a '\0' in the correct place first;
                 // otherwise you'll get junk in the output.
 
-
+                buf[where - 2] = '\0';
+                buf[where - 1] = '\0';
                 printf("Next message: %s\n", buf);
                 // Note that we could have also used write to avoid having to
                 // put the '\0' in the buffer. Try using write later!
@@ -68,10 +69,17 @@ int main() {
                 // of the buffer.  A loop can do it, or you can use memmove.
                 // memmove(destination, source, number_of_bytes)
 
+                inbuf -= where;
+                if(memmove(buf, buf + where, inbuf) == NULL){
+                    fprintf(stderr, "fail to memmove\n");
+                }
 
+                for(int i = inbuf; i < inbuf + where; i++){
+                    buf[i] = '\0';
+                }
             }
             // Step 5: update after and room, in preparation for the next read.
-
+            after = &buf[inbuf];
 
         }
         close(fd);
@@ -90,5 +98,10 @@ int main() {
  * Definitely do not use strchr or other string functions to search here. (Why not?)
  */
 int find_network_newline(const char *buf, int n) {
+    for(int i = 0; i < n - 1; i++){
+        if(buf[i] == '\r' && buf[i+1] == '\n'){
+            return i + 2;
+        }
+    }
     return -1;
 }
