@@ -73,10 +73,6 @@ int main() {
                 if(memmove(buf, buf + where, inbuf) == NULL){
                     fprintf(stderr, "fail to memmove\n");
                 }
-
-                for(int i = inbuf; i < inbuf + where; i++){
-                    buf[i] = '\0';
-                }
             }
             // Step 5: update after and room, in preparation for the next read.
             after = &buf[inbuf];
