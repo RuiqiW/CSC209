@@ -45,8 +45,25 @@ int accept_connection(int fd, struct sockname *usernames) {
         exit(1);
     }
 
+    // read username
+    char buf[BUF_SIZE + 1];
+    int num_read = read(client_fd, &buf, BUF_SIZE);
+    buf[num_read] = '\0';
+    if (num_read == 0) {
+        return -1;
+    }else{
+        char* new_line = strstr(buf, "\r\n");
+        if(new_line == NULL){
+            new_line = strstr(buf, "\n");
+        }
+        if(new_line != NULL){
+            *new_line = '\0';
+        }
+    }
+
     usernames[user_index].sock_fd = client_fd;
-    usernames[user_index].username = NULL;
+    usernames[user_index].username = malloc(strlen(buf));
+    strncpy(usernames[user_index].username, buf, strlen(buf));
     return client_fd;
 }
 
@@ -60,9 +77,27 @@ int read_from(int client_index, struct sockname *usernames) {
 
     int num_read = read(fd, &buf, BUF_SIZE);
     buf[num_read] = '\0';
-    if (num_read == 0 || write(fd, buf, strlen(buf)) != strlen(buf)) {
+    if (num_read == 0) {
         usernames[client_index].sock_fd = -1;
         return fd;
+    }
+
+
+    // broadcast message to all clients
+    char msg[BUF_SIZE + 1];
+    msg[BUF_SIZE] = '\0';
+    strncpy(msg, usernames[client_index].username, BUF_SIZE);
+    strncat(msg, ": ", BUF_SIZE - strlen(msg));
+    strncat(msg, buf, BUF_SIZE - strlen(msg));
+
+    for(int index = 0; index < MAX_CONNECTIONS; index++){
+        int client = usernames[index].sock_fd;
+        if( client != -1 ){
+           if( write(client, msg, strlen(msg)) != strlen(msg)){
+               usernames[index].sock_fd = -1;
+               return client;
+           }
+        }
     }
 
     return 0;
