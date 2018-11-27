@@ -45,8 +45,25 @@ int accept_connection(int fd, struct sockname *usernames) {
         exit(1);
     }
 
+    // read username
+    char buf[BUF_SIZE + 1];
+    int num_read = read(client_fd, &buf, BUF_SIZE);
+    buf[num_read] = '\0';
+    if (num_read == 0) {
+        return -1;
+    }else{
+        char* new_line = strstr(buf, "\r\n");
+        if(new_line == NULL){
+            new_line = strstr(buf, "\n");
+        }
+        if(new_line != NULL){
+            *new_line = '\0';
+        }
+    }
+
     usernames[user_index].sock_fd = client_fd;
-    usernames[user_index].username = NULL;
+    usernames[user_index].username = malloc(strlen(buf));
+    strncpy(usernames[user_index].username, buf, strlen(buf));
     return client_fd;
 }
 
@@ -83,33 +100,6 @@ int read_from(int client_index, struct sockname *usernames) {
         }
     }
 
-    return 0;
-}
-
-int read_name(int client_fd, struct sockname *usernames){
-    int user_index;
-    while (user_index < MAX_CONNECTIONS && usernames[user_index].sock_fd != client_fd) {
-        user_index++;
-    }
-    char buf[BUF_SIZE + 1];
-
-    int num_read = read(client_fd, &buf, BUF_SIZE);
-    buf[num_read] = '\0';
-    if (num_read == 0) {
-        usernames[user_index].sock_fd = -1;
-        return client_fd;
-    }else{
-        char* new_line = strstr(buf, "\r\n");
-        if(new_line == NULL){
-            new_line = strstr(buf, "\n");
-        }
-        if(new_line != NULL){
-            *new_line = '\0';
-        }
-    }
-
-    usernames[user_index].username = malloc(strlen(buf));
-    strncpy(usernames[user_index].username, buf, strlen(buf));
     return 0;
 }
 
@@ -176,13 +166,6 @@ int main(void) {
             }
             FD_SET(client_fd, &all_fds);
             printf("Accepted connection\n");
-
-            // read username
-            int client_closed = read_name(client_fd, usernames);
-            if(client_closed > 0){
-                FD_CLR(client_closed, &all_fds);
-                printf("Client %d disconnected\n", client_closed);
-            }
         }
 
         // Next, check the clients.
