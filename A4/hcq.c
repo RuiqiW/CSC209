@@ -221,32 +221,98 @@ int next_overall(char *ta_name, Ta **ta_list_ptr, Student **stu_list_ptr) {
 
 
 // print a message about which TAs are serving which students
-void print_currently_serving(Ta *ta_list) {
-    if (ta_list == NULL) {
-        printf("No TAs are currently working.\n");
-        return;
+char *print_currently_serving(Ta *ta_list) {
+    
+    char *result;
+    int len = 0;
+    if(ta_list == NULL){
+        len = strlen("No TAs are currently working.\r\n");
+        if( (result = malloc(len + 1)) == NULL){
+            perror("malloc");
+            exit(1);
+        }
+        strncpy(result,"No TAs are currently working.\r\n", len);
+        result[len] = '\0';
+        return result;
     }
-    while (ta_list != NULL) {
-       if (ta_list->current_student != NULL) {
-           printf("TA: %s is serving %s.\n",
-                ta_list->name,
-                ta_list->current_student->name);
-       } else {
-           printf("TA: %s has no student\r\n", ta_list->name);
-       }
-       ta_list = ta_list->next;
+
+    Ta *head = ta_list;
+    int len1 = strlen("TA:  is serving .\r\n");
+    int len2 = strlen("TA:  has no student\r\n");
+    while(head != NULL){
+        if(head ->current_student != NULL){
+            len += len1;
+            len += strlen(head->name);
+            len += strlen(head->current_student->name);
+        }else{
+            len += len2;
+            len += strlen(head->name);
+        }
+        head = head->next;
     }
+
+    if( (result = malloc(len + 1)) == NULL){
+        perror("malloc");
+        exit(1);
+    }
+
+    head = ta_list;
+    while(head != NULL){
+        if(head->current_student != NULL){
+            char *info1;
+            asprintf(&info1, "TA: %s is serving %s.\r\n", head->name, head->current_student->name);
+            strncat(result, info1, len - strlen(result));
+            free(info1);
+        }else{
+            char *info2;
+            asprintf(&info2, "TA: %s has no student\r\n", head->name);
+            strncat(result, info2, len -strlen(result));
+            free(info2);
+        }
+        head = head->next;
+    }
+
+    result[len] = '\0';
+    return result;
 }
 
 /*  Print a list of all the students in the queue. This does not
  *    print students currently being served. 
  */ 
-void print_full_queue(Student *stu_list) {
-    printf("Full Queue\n");
+char *print_full_queue(Student *head) {
+    
+    Student *stu_list = head;
+    char *result;
+    int len = strlen("Full Queue\r\n");
     while (stu_list != NULL) {
-        printf("Student %s:%s\n",stu_list->name, stu_list->course->code);
+        len += strlen("Student :\r\n");
+        len += strlen(stu_list->name);
+        len += strlen(stu_list->course->code);
         stu_list = stu_list->next_overall;
     }
+
+    if((result = malloc(len + 1)) == NULL){
+        perror("malloc");
+        exit(1);
+    }
+
+    result[0] = '\0';
+    strncat(result, "Full Queue\r\n", len);
+
+    stu_list = head;
+    while (stu_list != NULL) {
+        char *stu_ptr;
+        if( asprintf(&stu_ptr, "Student %s:%s\r\n",stu_list->name, stu_list->course->code) == -1){
+            perror("asprintf");
+            exit(1);
+        }
+        strncat(result, stu_ptr, len - strlen(result));
+        free(stu_ptr);
+        stu_list = stu_list->next_overall;
+    }
+
+    result[len] = '\0';
+    return result;
 }
 
 
