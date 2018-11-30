@@ -38,6 +38,7 @@ int main(void) {
     }
 
     // Read name from user and send it to the server.
+    printf("What is your name?\n");
     char name[BUF_SIZE + 1];
     int num_r = read(STDIN_FILENO, name, BUF_SIZE);
     if(num_r == 0){
@@ -88,7 +89,7 @@ int main(void) {
         if(FD_ISSET(sock_fd, &listen_fds)){
             int num_read = read(sock_fd, buf, BUF_SIZE);
             buf[num_read] = '\0';
-            printf("Received from server: %s", buf);
+            printf("%s", buf);
         }
     }
 
