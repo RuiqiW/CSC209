@@ -304,15 +304,15 @@ int read_from_student(Client *client){
 }
 
 
-Client *free_client(Client *client, Client **client_list){
+Client *free_client(Client *client, Client **client_list_ptr){
 
     Client *next_client = client->next;
-    Client *head = *client_list;
+    Client *head = *client_list_ptr;
     if(client->sock_fd == head->sock_fd){
-        *client_list = client->next;
+        *client_list_ptr = client->next;
     }else{
         // find the predecessor of this client
-        while(head != NULL){
+        while(head->next != NULL){
             if(head->next->sock_fd == client->sock_fd){
                 break;
             }
@@ -345,6 +345,7 @@ int serve_student(char *name, Client **client_list_ptr){
             head = head->next;
         }
     }
+    free(name);
 
     if(toServe == NULL){
         return -1;
@@ -374,6 +375,8 @@ int read_from_ta(Client *client, Client **client_list_ptr){
     }else if(closed == 0){
          // take next student 
         if(!strcmp(query, "next")){
+            free(query);
+            
             char *student_name = NULL;
 
             //record student's name
