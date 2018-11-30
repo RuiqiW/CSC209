@@ -177,17 +177,18 @@ int read_name(Client *client){
 
          // update username and state
          strncpy(client->username, name, strlen(name) + 1); 
+         client->username[strlen(name)] = '\0';
          client->state = 1;
-
-         free(name);
 
          // ask for role
          char *msg = "Are you a TA or a Student (enter T or S)?\r\n";
          if(write(client->sock_fd, msg, strlen(msg)) != strlen(msg)){
+             free(name);
              return client->sock_fd;
         }
     }
-     return 0;
+    free(name);
+    return 0;
 }
 
 int read_type(Client *client){
@@ -215,10 +216,9 @@ int read_type(Client *client){
             msg = "Invalid role (enter T or S)\r\n";
         }
 
-        free(type);
-
         // Write subsequent messages to client
         if(write(client->sock_fd, msg, strlen(msg)) != strlen(msg)){
+            free(type);
             return client->sock_fd;
         }
 
@@ -228,6 +228,7 @@ int read_type(Client *client){
             add_ta(&ta_list, client->username);
         }
     }
+    free(type);
     return 0; 
 }
 
@@ -260,8 +261,8 @@ int read_course(Client *client){
             add_student(&stu_list, client->username, course, courses, num_courses);
             client->state = 3; 
         }
-        free(course);
     }
+    free(course);
     return 0; 
 }
 
@@ -286,20 +287,20 @@ int read_from_student(Client *client){
              msg2free = 1;
         }
 
-        free(query);
-
         // Write subsequent messages to client
         if(write(client->sock_fd, msg, strlen(msg)) != strlen(msg)){
+            give_up_waiting(&stu_list, client->username);
+            free(query);
             if(msg2free){
                 free(msg);
             }
-            give_up_waiting(&stu_list, client->username);
             return client->sock_fd;
         }
         if(msg2free){
             free(msg);
         }
     }
+    free(query);
     return 0; 
 }
 
@@ -323,7 +324,9 @@ Client *free_client(Client *client, Client **client_list_ptr){
 
     free(client->command->buf);
     free(client->command);
-    free(client->username);
+    if(client->username != NULL){
+        free(client->username);
+    }
     free(client);
     return next_client;
 }
@@ -333,27 +336,25 @@ Client *free_client(Client *client, Client **client_list_ptr){
 int serve_student(char *name, Client **client_list_ptr){
     Client *head = *client_list_ptr;
     Client *toServe = NULL;
-    if(head->type == 'S' && !strcmp(head->username, name)){
-        *client_list_ptr = head->next;
-        toServe = head;
-    }else{
-        while(head != NULL){
-            if( head->type == 'S' && ! strcmp(head->username, name)){
-                toServe = head;
-                break;
-            }
-            head = head->next;
+
+    // Find student client
+    while(head != NULL){
+        if(head->type == 'S' && !strcmp(head->username, name)){
+            toServe = head;
+            break;
         }
+        head = head->next;
     }
-    free(name);
 
     if(toServe == NULL){
         return -1;
+
+    // Serve student client
     }else{
         int fd = toServe->sock_fd;
         char *msg = "Your turn to see the TA.\r\nWe are disconnecting you from the server now. Press Ctrl-C to close nc\r\n";
-        write(toServe->sock_fd, msg, strlen(msg));
-        close(toServe->sock_fd);
+        write(fd, msg, strlen(msg));
+        close(fd);
         free_client(toServe, client_list_ptr);
         return fd;
     }
@@ -369,30 +370,23 @@ int read_from_ta(Client *client, Client **client_list_ptr){
 
     // if TA disconnect from the server
     if( (closed = read_from(client, query)) > 0){
-         remove_ta(&ta_list, client->username);
-         free(query);
-         return closed;
+        remove_ta(&ta_list, client->username); 
+        free(query);
+        return closed;
     }else if(closed == 0){
          // take next student 
         if(!strcmp(query, "next")){
-            free(query);
-            
-            char *student_name = NULL;
-
-            //record student's name
+            int stu_fd = 0;
             if(stu_list != NULL){
-                int length = strlen(stu_list->name);
-                student_name = malloc(length + 1);
-                strncpy(student_name, stu_list->name, length + 1);
-                student_name[length] = '\0';
+                stu_fd = serve_student(stu_list->name, client_list_ptr);
             }
-
-            // TODO: error checking
-            next_overall(client->username, &ta_list, &stu_list);
-            if(student_name != NULL){
-                return serve_student(student_name, client_list_ptr);
+            if(next_overall(client->username, &ta_list, &stu_list) == 1){
+                // if ta not exit, shouldn't reach here
+                fprintf(stderr, "Ta not exits\n");
+                exit(1);
             }
-            return 0;
+            free(query);
+            return stu_fd;
         }else{
             // print waitlist
             if(!strcmp(query, "stats")){
@@ -401,15 +395,14 @@ int read_from_ta(Client *client, Client **client_list_ptr){
             }else{
                 msg = "Incorrect syntax\r\n";
             }
-
-            free(query);
             
             // Write subsequent messages to TA client
             if(write(client->sock_fd, msg, strlen(msg)) != strlen(msg)){
+                remove_ta(&ta_list, client->username);
+                free(query);
                 if(msg2free){
                     free(msg);
                 }
-                remove_ta(&ta_list, client->username);
                 return client->sock_fd;
             }
 
