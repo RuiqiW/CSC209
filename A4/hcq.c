@@ -158,6 +158,10 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
     } else if (strcmp(head->name, ta_name) == 0) {
         // TA is at the head so special case
         *ta_list_ptr = head->next;
+        free(head->name);
+        if(head->current_student != NULL){
+            free(head->current_student);
+        }
         free(head);
         return 0;
     } 
@@ -165,6 +169,10 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
         if (strcmp(head->next->name, ta_name) == 0) {
             Ta *tofree = head->next;
             head->next = head->next->next;
+            free(tofree->name);
+            if(tofree->current_student != NULL){
+                free(tofree->current_student);
+            }
             free(tofree);
             return 0;
         }
