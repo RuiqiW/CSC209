@@ -160,6 +160,7 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
         *ta_list_ptr = head->next;
         free(head->name);
         if(head->current_student != NULL){
+            free(head->current_student->name);
             free(head->current_student);
         }
         free(head);
@@ -171,6 +172,7 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
             head->next = head->next->next;
             free(tofree->name);
             if(tofree->current_student != NULL){
+                free(head->current_student->name);
                 free(tofree->current_student);
             }
             free(tofree);

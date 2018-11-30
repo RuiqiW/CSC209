@@ -89,6 +89,7 @@ int accept_connection(int fd, Client **client_list) {
     new_client->command->inbuf = 0;
     new_client->command->after =  new_client->command->buf;
 
+    // Add new_client to client_list
     if(*client_list != NULL){
         new_client->next = *client_list;
     }else{
@@ -236,18 +237,17 @@ int read_course(Client *client){
     char *course = malloc(BUF_SIZE);
     int closed;
     char *msg;
-    int valid = 1;
+    int valid = 0; // whether course is valid
 
     if( (closed = read_from(client, course)) > 0){
         free(course);
         return closed;
     }else if(closed == 0){
-        // Check if the input is a valid type of client
-        if(strcmp(course, "CSC108") && strcmp(course, "CSC148") && strcmp(course, "CSC209")){
+        if (add_student(&stu_list, client->username, course, courses, num_courses) == 2){
             msg = "This is not a valid course. Good-bye.\r\n";
-            valid = 0;
         }else{
             msg = "You have been entered into the queue. While you wait, you can use the command stats to see which TAs are currently serving students.\r\n";
+            valid = 1;
         }
 
         // Write subsequent messages to client
@@ -256,11 +256,14 @@ int read_course(Client *client){
             return client->sock_fd;
         }
 
-        // Create a student struct if course code is valid
-        if(valid){
-            add_student(&stu_list, client->username, course, courses, num_courses);
-            client->state = 3; 
+        if(valid == 0){
+            close(client->sock_fd);
+            free(course);
+            return client->sock_fd;
         }
+
+        // course is valid
+        client->state = 3;
     }
     free(course);
     return 0; 
@@ -382,7 +385,7 @@ int read_from_ta(Client *client, Client **client_list_ptr){
             }
             if(next_overall(client->username, &ta_list, &stu_list) == 1){
                 // if ta not exit, shouldn't reach here
-                fprintf(stderr, "Ta not exits\n");
+                fprintf(stderr, "Ta does not exit\n");
                 exit(1);
             }
             free(query);
@@ -411,6 +414,7 @@ int read_from_ta(Client *client, Client **client_list_ptr){
             }
         }
     }
+    free(query);
     return 0; 
 }
 
