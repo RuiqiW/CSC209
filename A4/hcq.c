@@ -168,6 +168,7 @@ int remove_ta(Ta **ta_list_ptr, char *ta_name) {
             free(tofree);
             return 0;
         }
+        head = head->next;
     }
     // if we reach here, the ta_name was not in the list
     return 1;
@@ -256,16 +257,23 @@ char *print_currently_serving(Ta *ta_list) {
         exit(1);
     }
 
+    result[0] = '\0';
     head = ta_list;
     while(head != NULL){
         if(head->current_student != NULL){
             char *info1;
-            asprintf(&info1, "TA: %s is serving %s.\r\n", head->name, head->current_student->name);
+            if(asprintf(&info1, "TA: %s is serving %s.\r\n", head->name, head->current_student->name) == -1){
+                perror("asprintf");
+                exit(1);
+            }
             strncat(result, info1, len - strlen(result));
             free(info1);
         }else{
             char *info2;
-            asprintf(&info2, "TA: %s has no student\r\n", head->name);
+            if(asprintf(&info2, "TA: %s has no student\r\n", head->name) == -1){
+                perror("asprintf");
+                exit(1);
+            }
             strncat(result, info2, len -strlen(result));
             free(info2);
         }
