@@ -237,17 +237,18 @@ int read_course(Client *client){
     char *course = malloc(BUF_SIZE);
     int closed;
     char *msg;
-    int valid = 0; // whether course is valid
 
     if( (closed = read_from(client, course)) > 0){
         free(course);
         return closed;
     }else if(closed == 0){
-        if (add_student(&stu_list, client->username, course, courses, num_courses) == 2){
+        int success = add_student(&stu_list, client->username, course, courses, num_courses);
+        if ( success == 2){
             msg = "This is not a valid course. Good-bye.\r\n";
+        }else if(success == 1){
+            msg = "You are already in the queue and cannot be added again for any course. Good-bye.\r\n";
         }else{
             msg = "You have been entered into the queue. While you wait, you can use the command stats to see which TAs are currently serving students.\r\n";
-            valid = 1;
         }
 
         // Write subsequent messages to client
@@ -256,13 +257,13 @@ int read_course(Client *client){
             return client->sock_fd;
         }
 
-        if(valid == 0){
+        if(success > 0){
             close(client->sock_fd);
             free(course);
             return client->sock_fd;
         }
 
-        // course is valid
+        // student is added to queue
         client->state = 3;
     }
     free(course);
