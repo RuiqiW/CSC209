@@ -1,6 +1,5 @@
 PORT=59788
 CFLAGS = -DPORT=\$(PORT) -g -std=c99 -Wall
-# CFLAGS = -Wall -g
 
 hcq_server: hcq_server.o hcq.o server.o
 	gcc $(CFLAGS) -o hcq_server hcq_server.o hcq.o server.o

@@ -11,11 +11,10 @@
 #include "server.h"
 
 
-// /* Accept a connection. Note that a new file descriptor is created for
-//  * communication with the client. The initial socket descriptor is used
-//  * to accept connections, but the new socket is used to communicate.
-//  * Return the new client's file descriptor or -1 on error.
-//  */
+/* Accept a connection. A new file descriptor is created for
+ * communication with the client. 
+ * Return the new client's file descriptor or -1 on error.
+ */
 int accept_connection(int fd, Client **client_list) {
 
     // Accept a connection
@@ -79,9 +78,9 @@ int find_network_newline(const char *buf, int n) {
     return -1;
 }
 
-/* Read a message from client.
+/* A helper function to read a message from client.
  * Return the fd if it has been closed or client writes over 30 characters, 
- * return 0 otherwise.
+ * return -1 if no full line message has been read, return 0 otherwise.
  */
 int read_from(Client *client, char *new_command) {
     int fd = client->sock_fd;
@@ -128,6 +127,12 @@ int read_from(Client *client, char *new_command) {
     }
 }
 
+
+/* Read username from client and update its username and state,
+ * then send client a message to ask for its role.
+ * Return the fd if it has been closed or writes over 30 characters, 
+ * return 0 otherwise.
+ */
 int read_name(Client *client){
      char *name = malloc(BUF_SIZE);
      int closed;
@@ -156,6 +161,12 @@ int read_name(Client *client){
     return 0;
 }
 
+
+/* Read client's role, add a new ta to ta_list if the role is 'T', 
+ * then send client a message to inform it of the next step.
+ * Return the fd if it has been closed or writes over 30 characters, 
+ * return 0 otherwise.
+ */
 int read_type(Client *client, Ta **ta_list_ptr){
     char *type = malloc(BUF_SIZE);
     int closed;
@@ -187,7 +198,6 @@ int read_type(Client *client, Ta **ta_list_ptr){
             return client->sock_fd;
         }
 
-        // TODO: error checking for add_ta
         // Create a Ta struct
         if(client->type == 'T'){
             add_ta(ta_list_ptr, client->username);
@@ -197,6 +207,12 @@ int read_type(Client *client, Ta **ta_list_ptr){
     return 0; 
 }
 
+
+/* Read student client's course, add a new student to stu_list if 
+ * the student is not in the list and the course is valid, 
+ * otherwise, disconnect client from the server.
+ * Return the fd if it has been closed, return 0 otherwise.
+ */
 int read_course(Client *client, Student **stu_list_ptr, Course *courses, int num_courses){
     char *course = malloc(BUF_SIZE);
     int closed;
@@ -221,19 +237,26 @@ int read_course(Client *client, Student **stu_list_ptr, Course *courses, int num
             return client->sock_fd;
         }
 
+        // If student is not added to stu_list
         if(success > 0){
             close(client->sock_fd);
             free(course);
             return client->sock_fd;
         }
 
-        // student is added to queue
+        // student is added to stu_list, update its state
         client->state = 3;
     }
     free(course);
     return 0; 
 }
 
+
+/* Read student's command, send it currently serving list if the command is valid,
+ * otherwise, send it an error message.
+ * Return the fd if it has been closed or writes over 30 characters, 
+ * return 0 otherwise.
+ */
 int read_from_student(Client *client, Student **stu_list_ptr, Ta **ta_list_ptr){
     char *query = malloc(BUF_SIZE);
     int closed;
@@ -242,7 +265,7 @@ int read_from_student(Client *client, Student **stu_list_ptr, Ta **ta_list_ptr){
 
     // if student disconnect from the server
     if( (closed = read_from(client, query)) > 0){
-         give_up_waiting(stu_list_ptr, client->username);
+         give_up_waiting(stu_list_ptr, client->username); // remove from stu_list
          free(query);
          return closed;
 
@@ -257,7 +280,7 @@ int read_from_student(Client *client, Student **stu_list_ptr, Ta **ta_list_ptr){
 
         // Write subsequent messages to client
         if(write(client->sock_fd, msg, strlen(msg)) != strlen(msg)){
-            give_up_waiting(stu_list_ptr, client->username);
+            give_up_waiting(stu_list_ptr, client->username); // remove from stu_list
             free(query);
             if(msg2free){
                 free(msg);
@@ -272,6 +295,11 @@ int read_from_student(Client *client, Student **stu_list_ptr, Ta **ta_list_ptr){
     return 0; 
 }
 
+
+/* A helper function to remove client from client_list and
+ * free the memory when a client is disconnected from server.
+ * Return the client after it in the client_list.
+*/
 
 Client *free_client(Client *client, Client **client_list_ptr){
 
@@ -300,7 +328,11 @@ Client *free_client(Client *client, Client **client_list_ptr){
 }
 
 
-
+/* A helper function for read_from_ta. Find the student client to serve,
+ * send it a message and disconnect it from server.
+ * Return student client's fd if it is disconnected from server,
+ * return -1 if the student is not found.
+ */
 int serve_student(char *name, Client **client_list_ptr){
     Client *head = *client_list_ptr;
     Client *toServe = NULL;
@@ -329,7 +361,12 @@ int serve_student(char *name, Client **client_list_ptr){
 }
 
 
-
+/* Read ta's command, send student queue or take next student if the command is valid,
+ * otherwise, send an error message.
+ * Return the sock_fd of the next student to serve if taking next student successfully,
+ * or return the fd if it has been closed or writes over 30 characters,
+ * return 0 otherwise.
+ */
 int read_from_ta(Client *client, Client **client_list_ptr, Student **stu_list_ptr, Ta **ta_list_ptr){
 
     char *query = malloc(BUF_SIZE);
@@ -339,7 +376,7 @@ int read_from_ta(Client *client, Client **client_list_ptr, Student **stu_list_pt
 
     // if TA disconnect from the server
     if( (closed = read_from(client, query)) > 0){
-        remove_ta(ta_list_ptr, client->username); 
+        remove_ta(ta_list_ptr, client->username); // remove from ta_list
         free(query);
         return closed;
     }else if(closed == 0){
@@ -367,7 +404,7 @@ int read_from_ta(Client *client, Client **client_list_ptr, Student **stu_list_pt
             
             // Write subsequent messages to TA client
             if(write(client->sock_fd, msg, strlen(msg)) != strlen(msg)){
-                remove_ta(ta_list_ptr, client->username);
+                remove_ta(ta_list_ptr, client->username); // remove from ta_list
                 free(query);
                 if(msg2free){
                     free(msg);
